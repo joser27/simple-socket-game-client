@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-## Getting Started
+# **Multiplayer Game Frontend**
 
-First, run the development server:
+This repository contains the code for the frontend of a multiplayer game built using **React** and **Socket.IO**. The frontend connects to a backend server to manage real-time communication between players.
 
-```bash
+## **Features**
+
+- Real-time interaction with the backend using **Socket.IO**.
+- Simple game rendering using HTML5 `<canvas>`.
+- Modular design with game logic separated into **GameController** and **GameEngine** components.
+
+## **Requirements**
+
+To run this frontend application, you'll need the following:
+
+- **Node.js** (version 14.x or higher)
+- **npm** (Node Package Manager, comes with Node.js)
+- **React** (already included in the dependencies)
+- **Socket.IO Client** (already included in the dependencies)
+
+## **Getting Started**
+
+### **1. Clone the Repository**
+
+First, clone the repository to your local machine:
+
+\`\`\`bash
+git clone https://github.com/your-username/your-frontend-repo-name.git
+cd your-frontend-repo-name
+\`\`\`
+
+### **2. Install Dependencies**
+
+Install the required Node.js packages:
+
+\`\`\`bash
+npm install
+\`\`\`
+
+This will install the following dependencies:
+
+- **react**: A JavaScript library for building user interfaces.
+- **react-dom**: A package that provides DOM-specific methods for React.
+- **socket.io-client**: A library for connecting to a Socket.IO server from the client side.
+
+### **3. Configuration**
+
+By default, the frontend is configured to connect to a backend server running on `localhost` at port `5000`. If your backend server is running on a different IP address or port, update the connection URL in the `GamePage` component.
+
+To update the connection:
+
+1. Open `GamePage.js` (or the relevant file).
+2. Replace `http://localhost:5000` with your backend server's IP address and port.
+
+\`\`\`javascript
+const socket = io("http://your-backend-ip-address:5000");
+\`\`\`
+
+### **4. Running the Application**
+
+To start the frontend application, run the following command:
+
+\`\`\`bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+\`\`\`
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This will start the development server, and the application will be accessible at:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Local Machine:** `http://localhost:3000`
+- **Other Devices on Local Network:** `http://your-local-ip-address:3000`
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+### **5. Accessing the Application**
 
-## Learn More
+Once the application is running, you can access it via:
 
-To learn more about Next.js, take a look at the following resources:
+- **Local Machine:** `http://localhost:3000`
+- **Other Devices on Local Network:** `http://your-local-ip-address:3000`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### **6. Troubleshooting**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+- **CORS Issues:** Ensure that your backend server is configured to accept connections from your frontend's origin, especially if they are running on different domains or ports.
+- **Port Conflicts:** If port `3000` is already in use, you can change it by updating the `start` script in the `package.json` file or by running `npm start --port your-port`.
 
-## Deploy on Vercel
+### **7. Additional Setup**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+If your backend server's address changes frequently, consider using environment variables to manage the backend URL dynamically.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Example using `.env` file:
+
+1. Create a `.env` file in the root of your project.
+2. Add the following line:
+
+\`\`\`env
+REACT_APP_BACKEND_URL=http://your-backend-ip-address:5000
+\`\`\`
