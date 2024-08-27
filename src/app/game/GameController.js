@@ -1,10 +1,10 @@
 import Game from "./Game";
 
 class GameController {
-    constructor(context, socket) {
+    constructor(context, socket, playerName) {
       this.c = context;
       this.socket = socket;
-      this.game = new Game(this.c);
+      this.game = new Game(this.c, this.socket, playerName);
   
       // Setup socket listeners
       this.setupSocketListeners();
@@ -23,6 +23,7 @@ class GameController {
       });
   
       this.socket.on('newPlayer', (playerInfo) => {
+        
         this.game.addPlayer(playerInfo);
       });
   
@@ -53,14 +54,6 @@ class GameController {
     update() {
         // Game update logic
         this.game.update();
-      
-        // Only emit player movement if the player is initialized
-        if (this.game.player) {
-          this.socket.emit('playerMovement', {
-            x: this.game.player.x,
-            y: this.game.player.y,
-          });
-        }
       }
       
   
