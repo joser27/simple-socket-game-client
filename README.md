@@ -1,12 +1,11 @@
-
 # **Multiplayer Game Frontend**
 
-This repository contains the code for the frontend of a multiplayer game built using **React** and **Socket.IO**. The frontend connects to a backend server to manage real-time communication between players.
+This repository contains the code for the frontend of a multiplayer game built using **React**, **Phaser 3**, and **Socket.IO**. The frontend connects to a backend server to manage real-time communication between players.
 
 ## **Features**
 
 - Real-time interaction with the backend using **Socket.IO**.
-- Simple game rendering using HTML5 `<canvas>`.
+- Game rendering and logic using **Phaser 3**.
 - Modular design with game logic separated into **GameController** and **GameEngine** components.
 
 ## **Requirements**
@@ -17,6 +16,7 @@ To run this frontend application, you'll need the following:
 - **npm** (Node Package Manager, comes with Node.js)
 - **React** (already included in the dependencies)
 - **Socket.IO Client** (already included in the dependencies)
+- **Phaser 3** (included as a dependency)
 
 ## **Getting Started**
 
@@ -42,6 +42,7 @@ This will install the following dependencies:
 - **react**: A JavaScript library for building user interfaces.
 - **react-dom**: A package that provides DOM-specific methods for React.
 - **socket.io-client**: A library for connecting to a Socket.IO server from the client side.
+- **phaser**: A fast, free, and fun open-source framework for Canvas and WebGL powered browser games.
 
 ### **3. Configuration**
 
