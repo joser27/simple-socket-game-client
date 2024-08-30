@@ -1,9 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import io from "socket.io-client";
-import GameController from "./GameController";
-import GameEngine from "./GameEngine";
-import Config from "./config.js";
 
 const GamePage = () => {
   const [playerName, setPlayerName] = useState("");
@@ -17,30 +14,28 @@ const GamePage = () => {
   };
 
   useEffect(() => {
-    if (!isGameStarted) return;
+    if (!isGameStarted || typeof window === "undefined") return;
 
-    const socket = io("http://localhost:5000", {
-      query: { playerName }, // Send the player name to the server when connecting
+    import("./GameController").then(({ default: GameController }) => {
+      const socket = io("http://localhost:5000", {
+        query: { playerName },
+      });
+
+      const gameController = new GameController(socket, playerName);
+
+      return () => {
+        socket.disconnect();
+      };
     });
-    const canvas = document.getElementById("gameCanvas");
-    const context = canvas.getContext("2d");
-
-    const gameController = new GameController(context, socket, playerName);
-    const gameEngine = new GameEngine(context, gameController);
-    gameEngine.start();
-
-    return () => {
-      gameEngine.stop();
-      socket.disconnect();
-    };
   }, [isGameStarted]);
 
   if (!isGameStarted) {
     return (
-      <div>
+      <div className="absolute inset-0 flex items-center justify-center">
         <h1>Enter your name to start the game</h1>
         <form onSubmit={handleNameSubmit}>
           <input
+            className="text-sm text-blue-700"
             type="text"
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
@@ -54,11 +49,10 @@ const GamePage = () => {
   }
 
   return (
-    <canvas
-      id="gameCanvas"
-      width={Config.CANVAS_WIDTH}
-      height={Config.CANVAS_HEIGHT}
-    ></canvas>
+    <div
+      id="phaser-game"
+      className="flex items-center justify-center h-screen"
+    ></div>
   );
 };
 
