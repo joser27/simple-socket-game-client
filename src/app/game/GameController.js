@@ -5,7 +5,6 @@ class GameController {
   constructor(socket, playerName) {
     this.socket = socket;
     this.playerName = playerName;
-    this.players = {};
 
     this.config = {
       type: Phaser.AUTO,
@@ -16,7 +15,7 @@ class GameController {
         default: 'arcade',
         arcade: {
           gravity: { y: 0 },
-          debug: false,
+          debug: true,
           fps: 60,
         }
       },

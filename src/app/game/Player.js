@@ -1,3 +1,4 @@
+import * as Phaser from 'phaser';
 class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(playerName, scene, x, y, texture) {
     super(scene, x, y, texture);
@@ -23,6 +24,18 @@ class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Create cursor keys for movement
     this.cursors = this.scene.input.keyboard.createCursorKeys();
+    this.attackKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE); // Spacebar for attacking
+
+    // Initialize the hitbox
+    this.hitbox = this.scene.add.rectangle(0, 0, 50, 50);
+    this.scene.physics.world.enable(this.hitbox);
+    this.hitbox.body.setAllowGravity(false);
+    this.hitbox.body.setImmovable(true);
+    this.hitbox.setActive(false).setVisible(false); // Set hitbox as inactive and invisible initially
+
+    // Enable mouse input
+    this.scene.input.on('pointerdown', (pointer) => this.activateHitbox(pointer));
+    this.scene.input.on('pointerup', () => this.deactivateHitbox());
 
     // Create a text object for the player's name
     this.nameText = this.scene.add.text(this.x, this.y - 50, this.playerName, {
@@ -37,74 +50,69 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     this.currentHealth = this.maxHealth; // Set initial health
     this.healthBarWidth = 50; // Set width of health bar
     this.updateHealthBar();
-    this.anims.play('left', true);
+    this.anims.play('idle', true);
   }
 
   createAnimations() {
-
     this.scene.anims.create({
       key: 'idle',
-      frames: this.scene.anims.generateFrameNumbers('dude', { start: 4, end: 4 }),
+      frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 1, end: 1 }),
       frameRate: 1,
       repeat: -1
     });
+
     this.scene.anims.create({
       key: 'left',
-      frames: this.scene.anims.generateFrameNumbers('dude', { start: 0, end: 3 }), 
+      frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 0, end: 7 }), 
       frameRate: 10,
       repeat: -1
     });
   
     this.scene.anims.create({
       key: 'right',
-      frames: this.scene.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
+      frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 0, end: 7 }),
       frameRate: 10,
       repeat: -1
     });
   
     this.scene.anims.create({
       key: 'up',
-      frames: this.scene.anims.generateFrameNumbers('dude', { start: 0, end: 7 }),
+      frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 0, end: 7 }),
       frameRate: 10,
       repeat: -1
     });
   
     this.scene.anims.create({
       key: 'down',
-      frames: this.scene.anims.generateFrameNumbers('dude', { start: 0, end: 7 }),
+      frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 0, end: 7 }),
       frameRate: 10,
       repeat: -1
     });
-
   }
-  
 
   moveLeft() {
-    this.setVelocityX(-this.movementSpeed );
-    // this.flipX = true; // Flip the sprite horizontally
-    this.anims.play('left', true); // Use the 'left' animation
+    this.setVelocityX(-this.movementSpeed);
+    this.flipX = true; // Flip the sprite horizontally
+    this.anims.play('right', true); // Play the 'right' animation, but flipped
   }
-  
+
   moveRight() {
-    this.setVelocityX(this.movementSpeed );
-    // this.flipX = false; // Ensure the sprite is not flipped
+    this.setVelocityX(this.movementSpeed);
+    this.flipX = false; // Ensure the sprite is not flipped
     this.anims.play('right', true);
   }
   
   moveUp() {
-    this.setVelocityY(-this.movementSpeed );
-    // this.flipX = false; // Ensure the sprite is not flipped when moving up
+    this.setVelocityY(-this.movementSpeed);
     this.anims.play('up', true);
   }
   
   moveDown() {
-    this.setVelocityY(this.movementSpeed );
-    // this.flipX = false; // Ensure the sprite is not flipped when moving down
+    this.setVelocityY(this.movementSpeed);
     this.anims.play('down', true);
   }
 
   update() {
-
     let moving = false; // Flag to track if the player is moving
   
     // Reset player velocity to stop the movement when no keys are pressed
@@ -112,23 +120,23 @@ class Player extends Phaser.Physics.Arcade.Sprite {
   
     // Diagonal movement
     if (this.cursors.left.isDown && this.cursors.up.isDown) {
-      this.setVelocityX(-this.movementSpeed );
-      this.setVelocityY(-this.movementSpeed );
+      this.setVelocityX(-this.movementSpeed);
+      this.setVelocityY(-this.movementSpeed);
       this.anims.play('left', true);
       moving = true;
     } else if (this.cursors.left.isDown && this.cursors.down.isDown) {
-      this.setVelocityX(-this.movementSpeed );
-      this.setVelocityY(this.movementSpeed );
+      this.setVelocityX(-this.movementSpeed);
+      this.setVelocityY(this.movementSpeed);
       this.anims.play('left', true);
       moving = true;
     } else if (this.cursors.right.isDown && this.cursors.up.isDown) {
-      this.setVelocityX(this.movementSpeed );
-      this.setVelocityY(-this.movementSpeed );
+      this.setVelocityX(this.movementSpeed);
+      this.setVelocityY(-this.movementSpeed);
       this.anims.play('right', true);
       moving = true;
     } else if (this.cursors.right.isDown && this.cursors.down.isDown) {
-      this.setVelocityX(this.movementSpeed );
-      this.setVelocityY(this.movementSpeed );
+      this.setVelocityX(this.movementSpeed);
+      this.setVelocityY(this.movementSpeed);
       this.anims.play('right', true);
       moving = true;
     } else {
@@ -154,7 +162,12 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     // If no movement, stop the animation
     if (!moving) {
       this.anims.play('idle', true);
-      this.setFrame(4); // Assuming frame 4 is your "idle" or "turn" frame
+    }
+
+    // Update the hitbox position if it exists
+    if (this.hitbox.active) {
+      const pointer = this.scene.input.activePointer;
+      this.updateHitboxPosition(pointer);
     }
 
     // Update the position of the name text
@@ -162,6 +175,24 @@ class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Update the position and size of the health bar
     this.updateHealthBar();
+  }
+
+  activateHitbox(pointer) {
+    this.hitbox.setActive(true).setVisible(true);
+    this.updateHitboxPosition(pointer);
+  }
+
+  updateHitboxPosition(pointer) {
+    // Calculate the direction from the player to the pointer
+    const direction = new Phaser.Math.Vector2(pointer.worldX - this.x, pointer.worldY - this.y).normalize();
+
+    // Set the hitbox position to be in front of the player
+    const hitboxDistance = 50; // Distance from the player
+    this.hitbox.setPosition(this.x + direction.x * hitboxDistance, this.y + direction.y * hitboxDistance);
+  }
+
+  deactivateHitbox() {
+    this.hitbox.setActive(false).setVisible(false);
   }
 
   updateHealthBar() {
@@ -179,15 +210,12 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     this.healthBar.fillStyle(0x00ff00); // Green color for the current health
     this.healthBar.fillRect(this.x - this.healthBarWidth / 2, this.y - 60, healthBarWidth, 10);
   }
-  
 
-  // Method to reduce the player's health
   takeDamage(amount) {
     this.currentHealth = Phaser.Math.Clamp(this.currentHealth - amount, 0, this.maxHealth);
     this.updateHealthBar();
   }
 
-  // Method to increase the player's health
   heal(amount) {
     this.currentHealth = Phaser.Math.Clamp(this.currentHealth + amount, 0, this.maxHealth);
     this.updateHealthBar();
