@@ -2,6 +2,8 @@ import * as Phaser from 'phaser';
 import Player from './Player';
 import PlayConfig from './PlayConfig';
 import levelCollisions from './Level';
+import Tree from './Tree';
+import Rock from './Rock';
 
 class GameScene extends Phaser.Scene {
     constructor(gameController, socket) {
@@ -10,8 +12,6 @@ class GameScene extends Phaser.Scene {
         this.gameController = gameController;
         this.player = null;
         this.players = {}; // Store all players by ID
-        this.trees = null; // Group to store trees
-        this.treeOverlapTimers = new Map(); // Map to store timers for each tree
         this.hitAble = [];
     }
 
@@ -29,52 +29,83 @@ class GameScene extends Phaser.Scene {
             frameWidth: 32, // Width of one frame
             frameHeight: 34 // Height of one frame
         });
-        this.createTrees();
+        this.textures.addSpriteSheetFromAtlas('stone_rock_cropped', {
+            atlas: 'rock',  // Original sprite sheet key
+            frame: 1,       // Frame index to use
+            frameWidth: 32, // Width of one frame
+            frameHeight: 32 // Height of one frame
+        });
+        this.createHitables();
         this.setupSocketListeners();
         this.requestCurrentPlayers();
         this.createCollisionAreas();
 
-        // Add collision detection between player hitbox and trees
-        this.physics.add.collider(this.player, this.trees);
+
         // Add players and trees to the hitAble list
         this.hitAble.push(this.players);
         this.hitAble.push(this.trees);
+        this.physics.add.collider(this.player, this.hitAble);
     }
-
     update() {
         this.updatePlayer();
         this.emitPlayerMovement();
-        this.adjustDepth();
+        //this.adjustDepth();
 
         // Iterate over the hitAble array
         if (this.player.hitbox.active) {
-          this.hitAble.forEach((hitableGroup) => {
-            if (hitableGroup instanceof Phaser.GameObjects.Group) {
-                hitableGroup.children.iterate((hitable) => {
-                    // Example interaction logic
-                    if (this.player.hitbox.active && this.physics.overlap(this.player.hitbox, hitable)) {
-                        // Perform action
-                        console.log('Overlapping with', hitable.texture.key);
-                    }
-                });
-            } else {
-                for (const id in hitableGroup) {
-                    const hitable = hitableGroup[id];
-                    if (this.player.hitbox.active && this.physics.overlap(this.player.hitbox, hitable)) {
-                        // Perform action
-                        console.log('Overlapping with', hitable.playerName || hitable.texture.key);
-                        hitable.takeDamage();
-                    }
+            this.hitAble.forEach((hitable) => {
+                if (this.physics.overlap(this.player.hitbox, hitable)) {
+                    hitable.takeDamage(); // Call polymorphic method
                 }
-            }
-        });
+            });
         }
     }
+    // update() {
+    //     this.updatePlayer();
+    //     this.emitPlayerMovement();
+    //     this.adjustDepth();
 
+    //     // Iterate over the hitAble array
+    //     if (this.player.hitbox.active) {
+    //       this.hitAble.forEach((hitableGroup) => {
+    //         if (hitableGroup instanceof Phaser.GameObjects.Group) {
+    //             hitableGroup.children.iterate((hitable) => {
+    //                 // Example interaction logic
+    //                 if (this.player.hitbox.active && this.physics.overlap(this.player.hitbox, hitable)) {
+    //                     // Perform action
+    //                     console.log('Overlapping with', hitable.texture.key);
+    //                 }
+    //             });
+    //         } else {
+    //             for (const id in hitableGroup) {
+    //                 const hitable = hitableGroup[id];
+    //                 if (this.player.hitbox.active && this.physics.overlap(this.player.hitbox, hitable)) {
+    //                     // Perform action
+    //                     console.log('Overlapping with', hitable.playerName || hitable.texture.key);
+    //                     hitable.takeDamage();
+    //                 }
+    //             }
+    //         }
+    //     });
+    //     }
+    // }
+    createHitables() {
+        // Create Trees
+        for (let i = 0; i < 10; i++) {
+            const tree = new Tree(this, 100 + i * 150, 100 + i * 100);
+            this.hitAble.push(tree);
+        }
+
+        // Create Rocks
+        for (let i = 0; i < 5; i++) {
+            const rock = new Rock(this, 200 + i * 200, 200 + i * 200);
+            this.hitAble.push(rock);
+        }
+    }
     loadAssets() {
         this.load.image('background', '/assets/sunnymapv2.png');
         this.load.image('tree', '/assets/plants/spr_deco_tree_01_strip4.png');
-        this.load.image('ground', '/assets/platform.png');
+        this.load.image('rock', '/assets/rocks/stone_rock.png');
         this.load.spritesheet('dude', '/assets/dude.png', { frameWidth: 32, frameHeight: 48 });
         this.load.spritesheet('humanWalk', '/assets/human/WALKING/base_walk_strip8.png', { frameWidth: 96, frameHeight: 64 });
     }
@@ -92,22 +123,22 @@ class GameScene extends Phaser.Scene {
         this.cameras.main.setZoom(1);
     }
 
-    createTrees() {
-        this.trees = this.physics.add.staticGroup({
-            key: 'tree_cropped',
-            repeat: 10, // Number of trees
-            setXY: { x: 100, y: 100, stepX: 150, stepY: 100 }
-        });
+    // createTrees() {
+    //     this.trees = this.physics.add.staticGroup({
+    //         key: 'tree_cropped',
+    //         repeat: 10, // Number of trees
+    //         setXY: { x: 100, y: 100, stepX: 150, stepY: 100 }
+    //     });
 
-        this.trees.children.iterate((tree) => {
-            tree.setScale(4); // Scale the tree to 4 times its original size
-            tree.refreshBody(); // Refresh the body to apply the new scale
+    //     this.trees.children.iterate((tree) => {
+    //         tree.setScale(4); // Scale the tree to 4 times its original size
+    //         tree.refreshBody(); // Refresh the body to apply the new scale
 
-            // Adjust the hitbox size (smaller than the sprite)
-            tree.body.setSize(tree.width * 1, tree.height * 1); // Example: 80% of the sprite size
-            tree.body.setOffset(tree.width * 1.5, tree.height * 2); // Center the smaller hitbox
-        });
-    }
+    //         // Adjust the hitbox size (smaller than the sprite)
+    //         tree.body.setSize(tree.width * 1, tree.height * 1); // Example: 80% of the sprite size
+    //         tree.body.setOffset(tree.width * 1.5, tree.height * 2); // Center the smaller hitbox
+    //     });
+    // }
 
     setupSocketListeners() {
         this.socket.on('currentPlayers', (players) => this.updatePlayers(players));
@@ -162,17 +193,25 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    adjustDepth() {
-        this.player.setDepth(this.player.y);
+    // adjustDepth() {
+    //     this.player.setDepth(this.player.y);
 
-        for (const id in this.players) {
-            this.players[id].setDepth(this.players[id].y);
-        }
+    //     for (const id in this.players) {
+    //         this.players[id].setDepth(this.players[id].y);
+    //     }
 
-        this.trees.children.iterate((tree) => {
-            tree.setDepth(tree.y);
-        });
-    }
+    //     this.trees.children.iterate((tree) => {
+    //         tree.setDepth(tree.y);
+    //     });
+    // }
+    // adjustDepth() {
+    //     this.player.setDepth(this.player.y);
+
+    //     // Adjust depth for all hitAble objects
+    //     this.hitAble.forEach((hitableObject) => {
+    //         hitableObject.setDepth(hitableObject.y);
+    //     });
+    // }
 
     updatePlayers(players) {
         for (const id in players) {
