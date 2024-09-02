@@ -35,12 +35,6 @@ class GameScene extends Phaser.Scene {
             frameWidth: 32, // Width of one frame
             frameHeight: 32 // Height of one frame
         });
-        this.textures.addSpriteSheetFromAtlas('sword_cropped', {
-            atlas: 'sword',  // Original sprite sheet key
-            frame: 1,       // Frame index to use
-            frameWidth: 80, // Width of one frame
-            frameHeight: 64 // Height of one frame
-        });
 
         this.createHitables();
 
@@ -59,9 +53,7 @@ class GameScene extends Phaser.Scene {
     }
 
     createHitables() {
-        // Create a group for hitAble objects
-        // this.hitAbleGroup = this.physics.add.staticGroup();
-
+        
         // Create Trees
         for (let i = 0; i < 10; i++) {
             const tree = new Tree(this, 100 + i * 150, 100 + i * 100);

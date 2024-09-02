@@ -123,6 +123,8 @@ class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   update() {
+
+    this.currentTool.checkOverlap(this.scene.hitAbleGroup);
     let moving = false; // Flag to track if the player is moving
     // Reset player velocity to stop the movement when no keys are pressed
     this.setVelocity(0);
