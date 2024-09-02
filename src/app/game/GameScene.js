@@ -12,7 +12,7 @@ class GameScene extends Phaser.Scene {
         this.gameController = gameController;
         this.player = null;
         this.players = {}; // Store all players by ID
-        this.hitAble = [];
+        this.hitAbleGroup = []; // Initialize hitAbleGroup
     }
 
     preload() {
@@ -22,7 +22,7 @@ class GameScene extends Phaser.Scene {
     create() {
         this.createBackground();
         this.createPlayer();
-        // Crop the sprite sheet to create a new texture for the first tree image
+
         this.textures.addSpriteSheetFromAtlas('tree_cropped', {
             atlas: 'tree',  // Original sprite sheet key
             frame: 1,       // Frame index to use
@@ -35,77 +35,53 @@ class GameScene extends Phaser.Scene {
             frameWidth: 32, // Width of one frame
             frameHeight: 32 // Height of one frame
         });
+        this.textures.addSpriteSheetFromAtlas('sword_cropped', {
+            atlas: 'sword',  // Original sprite sheet key
+            frame: 1,       // Frame index to use
+            frameWidth: 80, // Width of one frame
+            frameHeight: 64 // Height of one frame
+        });
+
         this.createHitables();
+
         this.setupSocketListeners();
         this.requestCurrentPlayers();
         this.createCollisionAreas();
 
-
-        // Add players and trees to the hitAble list
-        this.hitAble.push(this.players);
-        this.hitAble.push(this.trees);
-        this.physics.add.collider(this.player, this.hitAble);
+        // Add overlap between the player and hitAbleGroup objects
+        this.physics.add.collider(this.player, this.hitAbleGroup);
     }
+
     update() {
         this.updatePlayer();
         this.emitPlayerMovement();
-        //this.adjustDepth();
-
-        // Iterate over the hitAble array
-        if (this.player.hitbox.active) {
-            this.hitAble.forEach((hitable) => {
-                if (this.physics.overlap(this.player.hitbox, hitable)) {
-                    hitable.takeDamage(); // Call polymorphic method
-                }
-            });
-        }
+        this.adjustDepth();
     }
-    // update() {
-    //     this.updatePlayer();
-    //     this.emitPlayerMovement();
-    //     this.adjustDepth();
 
-    //     // Iterate over the hitAble array
-    //     if (this.player.hitbox.active) {
-    //       this.hitAble.forEach((hitableGroup) => {
-    //         if (hitableGroup instanceof Phaser.GameObjects.Group) {
-    //             hitableGroup.children.iterate((hitable) => {
-    //                 // Example interaction logic
-    //                 if (this.player.hitbox.active && this.physics.overlap(this.player.hitbox, hitable)) {
-    //                     // Perform action
-    //                     console.log('Overlapping with', hitable.texture.key);
-    //                 }
-    //             });
-    //         } else {
-    //             for (const id in hitableGroup) {
-    //                 const hitable = hitableGroup[id];
-    //                 if (this.player.hitbox.active && this.physics.overlap(this.player.hitbox, hitable)) {
-    //                     // Perform action
-    //                     console.log('Overlapping with', hitable.playerName || hitable.texture.key);
-    //                     hitable.takeDamage();
-    //                 }
-    //             }
-    //         }
-    //     });
-    //     }
-    // }
     createHitables() {
+        // Create a group for hitAble objects
+        // this.hitAbleGroup = this.physics.add.staticGroup();
+
         // Create Trees
         for (let i = 0; i < 10; i++) {
             const tree = new Tree(this, 100 + i * 150, 100 + i * 100);
-            this.hitAble.push(tree);
+            this.hitAbleGroup.push(tree);
         }
 
         // Create Rocks
         for (let i = 0; i < 5; i++) {
             const rock = new Rock(this, 200 + i * 200, 200 + i * 200);
-            this.hitAble.push(rock);
+            this.hitAbleGroup.push(rock);
         }
     }
+
     loadAssets() {
         this.load.image('background', '/assets/sunnymapv2.png');
         this.load.image('tree', '/assets/plants/spr_deco_tree_01_strip4.png');
         this.load.image('rock', '/assets/rocks/stone_rock.png');
+        this.load.spritesheet('axe', '/assets/handtools/tools_axe_strip10.png',{ frameWidth: 80, frameHeight: 64 });
+        this.load.spritesheet('pickaxe', '/assets/handtools/tools_mining_strip10.png',{ frameWidth: 80, frameHeight: 64 });
+        this.load.spritesheet('sword', '/assets/handtools/tools_attack_strip10.png', { frameWidth: 80, frameHeight: 64 });
         this.load.spritesheet('dude', '/assets/dude.png', { frameWidth: 32, frameHeight: 48 });
         this.load.spritesheet('humanWalk', '/assets/human/WALKING/base_walk_strip8.png', { frameWidth: 96, frameHeight: 64 });
     }
@@ -118,27 +94,9 @@ class GameScene extends Phaser.Scene {
 
     createPlayer() {
         this.player = new Player(this.gameController.playerName, this, 100, 450, 'humanWalk');
-        this.physics.add.collider(this.player, this.platforms);
         this.cameras.main.startFollow(this.player);
         this.cameras.main.setZoom(1);
     }
-
-    // createTrees() {
-    //     this.trees = this.physics.add.staticGroup({
-    //         key: 'tree_cropped',
-    //         repeat: 10, // Number of trees
-    //         setXY: { x: 100, y: 100, stepX: 150, stepY: 100 }
-    //     });
-
-    //     this.trees.children.iterate((tree) => {
-    //         tree.setScale(4); // Scale the tree to 4 times its original size
-    //         tree.refreshBody(); // Refresh the body to apply the new scale
-
-    //         // Adjust the hitbox size (smaller than the sprite)
-    //         tree.body.setSize(tree.width * 1, tree.height * 1); // Example: 80% of the sprite size
-    //         tree.body.setOffset(tree.width * 1.5, tree.height * 2); // Center the smaller hitbox
-    //     });
-    // }
 
     setupSocketListeners() {
         this.socket.on('currentPlayers', (players) => this.updatePlayers(players));
@@ -193,25 +151,19 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    // adjustDepth() {
-    //     this.player.setDepth(this.player.y);
-
-    //     for (const id in this.players) {
-    //         this.players[id].setDepth(this.players[id].y);
-    //     }
-
-    //     this.trees.children.iterate((tree) => {
-    //         tree.setDepth(tree.y);
-    //     });
-    // }
-    // adjustDepth() {
-    //     this.player.setDepth(this.player.y);
-
-    //     // Adjust depth for all hitAble objects
-    //     this.hitAble.forEach((hitableObject) => {
-    //         hitableObject.setDepth(hitableObject.y);
-    //     });
-    // }
+    adjustDepth() {
+        // Combine player and hitAbleGroup objects into a single array
+        const allObjects = [this.player, ...this.hitAbleGroup];
+    
+        // Sort the array by the y-coordinate to set depth correctly
+        allObjects.sort((a, b) => a.y - b.y);
+    
+        // Set depth for each object based on its position in the sorted array
+        allObjects.forEach((obj, index) => {
+            obj.setDepth(index);
+        });
+    }
+    
 
     updatePlayers(players) {
         for (const id in players) {
@@ -245,6 +197,10 @@ class GameScene extends Phaser.Scene {
             this.players[playerId].destroy();
             delete this.players[playerId];
         }
+    }
+
+    handleOverlap(player, hitableObject) {
+        console.log('Player overlapped with:', hitableObject);
     }
 }
 

@@ -5,6 +5,7 @@ class Rock extends HitableObject {
         super(scene, x, y, 'stone_rock_cropped');
         this.setScale(2);
         this.refreshBody();
+        // this.body.enable=false // remove colliusino
     }
 
     takeDamage(amount = 5) {

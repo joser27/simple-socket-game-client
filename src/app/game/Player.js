@@ -1,4 +1,8 @@
 import * as Phaser from 'phaser';
+import Sword from './Sword';
+import Axe from './Axe';
+import Pickaxe from './Pickaxe';
+
 class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(playerName, scene, x, y, texture) {
     super(scene, x, y, texture);
@@ -27,7 +31,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     this.attackKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE); // Spacebar for attacking
 
     // Initialize the hitbox
-    this.hitbox = this.scene.add.rectangle(0, 0, 50, 50);
+    this.hitbox = this.scene.add.rectangle(0, 0, 1, 1);
     this.scene.physics.world.enable(this.hitbox);
     this.hitbox.body.setAllowGravity(false);
     this.hitbox.body.setImmovable(true);
@@ -51,6 +55,25 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     this.healthBarWidth = 50; // Set width of health bar
     this.updateHealthBar();
     this.anims.play('idle', true);
+    // this.sword = new Sword(this.scene, this.x, this.y);
+    // this.sword.setVisible(false)
+    // this.axe = new Sword(this.scene, this.x, this.y);
+    // this.axe.setVisible(false)
+    // this.pickaxe = new Sword(this.scene, this.x, this.y);
+    // this.pickaxe.setVisible(false)
+        // Initialize tools
+    this.handTools = {
+      sword: new Sword(this.scene, this.x, this.y),
+      axe: new Axe(this.scene, this.x, this.y),
+      pickaxe: new Pickaxe(this.scene, this.x, this.y)
+    };
+    this.currentTool = this.handTools.sword;
+    Object.values(this.handTools).forEach(tool => {
+      tool.setVisible(false);
+    });
+    this.scene.input.keyboard.on('keydown-ONE', () => this.switchTool('sword'));
+    this.scene.input.keyboard.on('keydown-TWO', () => this.switchTool('axe'));
+    this.scene.input.keyboard.on('keydown-THREE', () => this.switchTool('pickaxe'));
   }
 
   createAnimations() {
@@ -166,6 +189,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Update the hitbox position if it exists
     if (this.hitbox.active) {
+
       const pointer = this.scene.input.activePointer;
       this.updateHitboxPosition(pointer);
     }
@@ -180,6 +204,10 @@ class Player extends Phaser.Physics.Arcade.Sprite {
   activateHitbox(pointer) {
     this.hitbox.setActive(true).setVisible(true);
     this.updateHitboxPosition(pointer);
+    // Object.values(this.handTools).forEach(tool => {
+    //   tool.setVisible(true);
+    // });
+    this.currentTool.setVisible(true);
   }
 
   updateHitboxPosition(pointer) {
@@ -189,10 +217,32 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     // Set the hitbox position to be in front of the player
     const hitboxDistance = 50; // Distance from the player
     this.hitbox.setPosition(this.x + direction.x * hitboxDistance, this.y + direction.y * hitboxDistance);
+    // Object.values(this.handTools).forEach(tool => {
+    //   tool.setPosition(this.hitbox.x,this.hitbox.y)
+    // });
+    this.currentTool.setPosition(this.hitbox.x,this.hitbox.y)
+  }
+  switchTool(toolName) {
+    switch(toolName) {
+      case 'sword':
+        this.currentTool = this.handTools.sword;
+        break;
+      case 'axe':
+        this.currentTool = this.handTools.axe;
+        break;
+      case 'pickaxe':
+        this.currentTool = this.handTools.pickaxe;
+        break;
+      default:
+        // code block
+    }
   }
 
   deactivateHitbox() {
     this.hitbox.setActive(false).setVisible(false);
+    Object.values(this.handTools).forEach(tool => {
+      tool.setVisible(false);
+    });
   }
 
   updateHealthBar() {
