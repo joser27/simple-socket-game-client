@@ -79,9 +79,9 @@ class GameScene extends Phaser.Scene {
         this.load.image('background', '/assets/sunnymapv2.png');
         this.load.image('tree', '/assets/plants/spr_deco_tree_01_strip4.png');
         this.load.image('rock', '/assets/rocks/stone_rock.png');
-        this.load.spritesheet('axe', '/assets/handtools/tools_axe_strip10.png',{ frameWidth: 80, frameHeight: 64 });
-        this.load.spritesheet('pickaxe', '/assets/handtools/tools_mining_strip10.png',{ frameWidth: 80, frameHeight: 64 });
-        this.load.spritesheet('sword', '/assets/handtools/tools_attack_strip10.png', { frameWidth: 80, frameHeight: 64 });
+        this.load.spritesheet('axe', '/assets/handtools/tools_axe_strip10.png',{ frameWidth: 96, frameHeight: 64 });
+        this.load.spritesheet('pickaxe', '/assets/handtools/tools_mining_strip10.png',{ frameWidth: 96, frameHeight: 64 });
+        this.load.spritesheet('sword', '/assets/handtools/tools_attack_strip10.png', { frameWidth: 96, frameHeight: 64 });
         this.load.spritesheet('dude', '/assets/dude.png', { frameWidth: 32, frameHeight: 48 });
         this.load.spritesheet('humanWalk', '/assets/human/WALKING/base_walk_strip8.png', { frameWidth: 96, frameHeight: 64 });
     }
