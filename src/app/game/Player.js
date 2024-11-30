@@ -24,9 +24,13 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     // Create animations
     this.createAnimations();
 
-    // Create cursor keys for movement
-    this.cursors = this.scene.input.keyboard.createCursorKeys();
-    this.attackKey = this.scene.input.activePointer.leftButtonDown(); // Left mouse button for attacking
+    // Replace cursor keys with WASD keys
+    this.keys = this.scene.input.keyboard.addKeys({
+        up: Phaser.Input.Keyboard.KeyCodes.W,
+        down: Phaser.Input.Keyboard.KeyCodes.S,
+        left: Phaser.Input.Keyboard.KeyCodes.A,
+        right: Phaser.Input.Keyboard.KeyCodes.D
+    });
 
     // Create a text object for the player's name
     this.nameText = this.scene.add.text(this.x, this.y - 50, this.playerName, {
@@ -42,62 +46,54 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     this.healthBarWidth = 50; // Set width of health bar
     this.updateHealthBar();
     this.anims.play('idle', true);
-
-    // Initialize tools
-    this.handTools = {
-      sword: new Sword(this.scene, this.x, this.y),
-      axe: new Axe(this.scene, this.x, this.y),
-      pickaxe: new Pickaxe(this.scene, this.x, this.y)
-    };
-    this.currentTool = this.handTools.axe;
-    Object.values(this.handTools).forEach(tool => {
-      tool.setVisible(false);
-    });
-
-    // Switch tools with number keys
-    this.scene.input.keyboard.on('keydown-ONE', () => this.switchTool('sword'));
-    this.scene.input.keyboard.on('keydown-TWO', () => this.switchTool('axe'));
-    this.scene.input.keyboard.on('keydown-THREE', () => this.switchTool('pickaxe'));
-
-    // Handle mouse input for attacking
-    this.scene.input.on('pointerdown', (pointer) => {
-      if (pointer.leftButtonDown()) {
-        this.currentTool.swing(pointer,this);
-      }
-    });
   }
 
   createAnimations() {
-    this.scene.anims.create({
-      key: 'idle',
-      frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 1, end: 1 }),
-      frameRate: 1,
-      repeat: -1
-    });
-    this.scene.anims.create({
-      key: 'left',
-      frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 0, end: 7 }), 
-      frameRate: 10,
-      repeat: -1
-    });
-    this.scene.anims.create({
-      key: 'right',
-      frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 0, end: 7 }),
-      frameRate: 10,
-      repeat: -1
-    });
-    this.scene.anims.create({
-      key: 'up',
-      frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 0, end: 7 }),
-      frameRate: 10,
-      repeat: -1
-    });
-    this.scene.anims.create({
-      key: 'down',
-      frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 0, end: 7 }),
-      frameRate: 10,
-      repeat: -1
-    });
+    // Check if animations already exist before creating them
+    if (!this.scene.anims.exists('idle')) {
+        this.scene.anims.create({
+            key: 'idle',
+            frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 1, end: 1 }),
+            frameRate: 1,
+            repeat: -1
+        });
+    }
+
+    if (!this.scene.anims.exists('left')) {
+        this.scene.anims.create({
+            key: 'left',
+            frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 0, end: 7 }), 
+            frameRate: 10,
+            repeat: -1
+        });
+    }
+
+    if (!this.scene.anims.exists('right')) {
+        this.scene.anims.create({
+            key: 'right',
+            frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+    }
+
+    if (!this.scene.anims.exists('up')) {
+        this.scene.anims.create({
+            key: 'up',
+            frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+    }
+
+    if (!this.scene.anims.exists('down')) {
+        this.scene.anims.create({
+            key: 'down',
+            frames: this.scene.anims.generateFrameNumbers('humanWalk', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+    }
   }
 
   moveLeft() {
@@ -123,50 +119,45 @@ class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   update() {
-
-    this.currentTool.checkOverlap(this.scene.hitAbleGroup);
-    let moving = false; // Flag to track if the player is moving
-    // Reset player velocity to stop the movement when no keys are pressed
+    let moving = false;
     this.setVelocity(0);
 
-    // Diagonal movement
-    if (this.cursors.left.isDown && this.cursors.up.isDown) {
-      this.setVelocityX(-this.movementSpeed);
-      this.setVelocityY(-this.movementSpeed);
-      this.anims.play('left', true);
-      moving = true;
-    } else if (this.cursors.left.isDown && this.cursors.down.isDown) {
-      this.setVelocityX(-this.movementSpeed);
-      this.setVelocityY(this.movementSpeed);
-      this.anims.play('left', true);
-      moving = true;
-    } else if (this.cursors.right.isDown && this.cursors.up.isDown) {
-      this.setVelocityX(this.movementSpeed);
-      this.setVelocityY(-this.movementSpeed);
-      this.anims.play('right', true);
-      moving = true;
-    } else if (this.cursors.right.isDown && this.cursors.down.isDown) {
-      this.setVelocityX(this.movementSpeed);
-      this.setVelocityY(this.movementSpeed);
-      this.anims.play('right', true);
-      moving = true;
+    // Update all cursor.left.isDown to this.keys.left.isDown etc.
+    if (this.keys.left.isDown && this.keys.up.isDown) {
+        this.setVelocityX(-this.movementSpeed);
+        this.setVelocityY(-this.movementSpeed);
+        this.anims.play('left', true);
+        moving = true;
+    } else if (this.keys.left.isDown && this.keys.down.isDown) {
+        this.setVelocityX(-this.movementSpeed);
+        this.setVelocityY(this.movementSpeed);
+        this.anims.play('left', true);
+        moving = true;
+    } else if (this.keys.right.isDown && this.keys.up.isDown) {
+        this.setVelocityX(this.movementSpeed);
+        this.setVelocityY(-this.movementSpeed);
+        this.anims.play('right', true);
+        moving = true;
+    } else if (this.keys.right.isDown && this.keys.down.isDown) {
+        this.setVelocityX(this.movementSpeed);
+        this.setVelocityY(this.movementSpeed);
+        this.anims.play('right', true);
+        moving = true;
     } else {
-      // Horizontal movement
-      if (this.cursors.left.isDown) {
-        this.moveLeft();
-        moving = true;
-      } else if (this.cursors.right.isDown) {
-        this.moveRight();
-        moving = true;
-      }
-      // Vertical movement
-      if (this.cursors.up.isDown) {
-        this.moveUp();
-        moving = true;
-      } else if (this.cursors.down.isDown) {
-        this.moveDown();
-        moving = true;
-      }
+        if (this.keys.left.isDown) {
+            this.moveLeft();
+            moving = true;
+        } else if (this.keys.right.isDown) {
+            this.moveRight();
+            moving = true;
+        }
+        if (this.keys.up.isDown) {
+            this.moveUp();
+            moving = true;
+        } else if (this.keys.down.isDown) {
+            this.moveDown();
+            moving = true;
+        }
     }
 
     // If no movement, stop the animation
@@ -174,44 +165,12 @@ class Player extends Phaser.Physics.Arcade.Sprite {
       this.anims.play('idle', true);
     }
 
-    // Update the tool's position to follow the mouse but stay within 50 units from the player
-    const pointer = this.scene.input.activePointer;
-    const direction = new Phaser.Math.Vector2(pointer.worldX - this.x, pointer.worldY - this.y).normalize();
-    const distance = Phaser.Math.Distance.Between(this.x, this.y, pointer.worldX, pointer.worldY);
-    const maxDistance = 50;
-    const toolX = this.x + direction.x * Math.min(distance, maxDistance);
-    const toolY = this.y + direction.y * Math.min(distance, maxDistance);
-    this.currentTool.setPosition(toolX, toolY);
 
     // Update the position of the name text
     this.nameText.setPosition(this.x, this.y - 70);
 
     // Update the position and size of the health bar
     this.updateHealthBar();
-  }
-
-  switchTool(toolName) {
-    Object.values(this.handTools).forEach(tool => {
-      tool.setVisible(false);
-    });
-
-    switch(toolName) {
-      case 'sword':
-        console.log("swap to sword")
-        this.currentTool = this.handTools.sword;
-        break;
-      case 'axe':
-        console.log("swap to axe")
-        this.currentTool = this.handTools.axe;
-        break;
-      case 'pickaxe':
-        console.log("swap to pickaxe")
-        this.currentTool = this.handTools.pickaxe;
-        break;
-      default:
-    }
-
-    this.currentTool.setVisible(true);
   }
 
   updateHealthBar() {
@@ -231,6 +190,21 @@ class Player extends Phaser.Physics.Arcade.Sprite {
   heal(amount) {
     this.currentHealth = Phaser.Math.Clamp(this.currentHealth + amount, 0, this.maxHealth);
     this.updateHealthBar();
+  }
+
+  destroy() {
+    // Clean up text and health bar before destroying the sprite
+    if (this.nameText) {
+        this.nameText.destroy();
+    }
+    if (this.healthBar) {
+        this.healthBar.destroy();
+    }
+    if (this.healthBarBackground) {
+        this.healthBarBackground.destroy();
+    }
+    // Call the parent class's destroy method
+    super.destroy();
   }
 }
 

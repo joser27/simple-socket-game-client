@@ -4,6 +4,7 @@ import PlayConfig from './PlayConfig';
 import levelCollisions from './Level';
 import Tree from './Tree';
 import Rock from './Rock';
+import Fist from './Fist';
 
 class GameScene extends Phaser.Scene {
     constructor(gameController, socket) {
@@ -39,7 +40,8 @@ class GameScene extends Phaser.Scene {
         this.createHitables();
 
         this.setupSocketListeners();
-        this.requestCurrentPlayers();
+        console.log('Requesting current players...');
+        this.socket.emit('requestCurrentPlayers');
         this.createCollisionAreas();
 
         // Add overlap between the player and hitAbleGroup objects
@@ -50,6 +52,11 @@ class GameScene extends Phaser.Scene {
         this.updatePlayer();
         this.emitPlayerMovement();
         this.adjustDepth();
+        
+        if (this.player.currentTool) {
+            this.player.currentTool.update();
+            this.player.currentTool.checkOverlap(this.hitAbleGroup);
+        }
     }
 
     createHitables() {
@@ -71,6 +78,7 @@ class GameScene extends Phaser.Scene {
         this.load.image('background', '/assets/sunnymapv2.png');
         this.load.image('tree', '/assets/plants/spr_deco_tree_01_strip4.png');
         this.load.image('rock', '/assets/rocks/stone_rock.png');
+        this.load.image('fist', '/assets/handtools/tools_fist.png'); 
         this.load.spritesheet('axe', '/assets/handtools/tools_axe_strip10.png',{ frameWidth: 96, frameHeight: 64 });
         this.load.spritesheet('pickaxe', '/assets/handtools/tools_mining_strip10.png',{ frameWidth: 96, frameHeight: 64 });
         this.load.spritesheet('sword', '/assets/handtools/tools_attack_strip10.png', { frameWidth: 96, frameHeight: 64 });
@@ -86,15 +94,33 @@ class GameScene extends Phaser.Scene {
 
     createPlayer() {
         this.player = new Player(this.gameController.playerName, this, 100, 450, 'humanWalk');
+        this.player.currentTool = new Fist(this, this.player.x, this.player.y);
+        this.player.currentTool.setPlayer(this.player);
+        
         this.cameras.main.startFollow(this.player);
         this.cameras.main.setZoom(1);
     }
 
     setupSocketListeners() {
-        this.socket.on('currentPlayers', (players) => this.updatePlayers(players));
-        this.socket.on('newPlayer', (playerInfo) => this.addPlayer(playerInfo));
-        this.socket.on('playerMoved', (playerInfo) => this.updatePlayerPosition(playerInfo));
-        this.socket.on('playerDisconnected', (playerId) => this.removePlayer(playerId));
+        // Debug logs to track events
+        this.socket.on('currentPlayers', (players) => {
+            console.log('Received current players:', players);
+            this.updatePlayers(players);
+        });
+
+        this.socket.on('newPlayer', (playerInfo) => {
+            console.log('New player joined:', playerInfo);
+            this.addPlayer(playerInfo);
+        });
+
+        this.socket.on('playerMoved', (playerInfo) => {
+            this.updatePlayerPosition(playerInfo);
+        });
+
+        this.socket.on('playerDisconnected', (playerId) => {
+            console.log('Player disconnected:', playerId);
+            this.removePlayer(playerId);
+        });
     }
 
     requestCurrentPlayers() {
@@ -114,7 +140,7 @@ class GameScene extends Phaser.Scene {
                     collisionArea.body.setSize(collisionArea.displayWidth, collisionArea.displayHeight);
                     collisionArea.body.setOffset(PlayConfig.TILE_SIZE / 4, PlayConfig.TILE_SIZE / 4);
                     this.physics.add.collider(this.player, collisionArea, () => {
-                        console.log('Player collided with the area!');
+                        // console.log('Player collided with the area!');
                     });
                 }
             });
@@ -144,13 +170,13 @@ class GameScene extends Phaser.Scene {
     }
 
     adjustDepth() {
-        // Combine player and hitAbleGroup objects into a single array
-        const allObjects = [this.player, ...this.hitAbleGroup];
+        const allObjects = [
+            this.player, 
+            ...this.hitAbleGroup,
+            ...(this.player.currentTool ? [this.player.currentTool] : [])
+        ];
     
-        // Sort the array by the y-coordinate to set depth correctly
         allObjects.sort((a, b) => a.y - b.y);
-    
-        // Set depth for each object based on its position in the sorted array
         allObjects.forEach((obj, index) => {
             obj.setDepth(index);
         });
@@ -158,34 +184,56 @@ class GameScene extends Phaser.Scene {
     
 
     updatePlayers(players) {
-        for (const id in players) {
-            if (id !== this.socket.id) {  // Ensure not to add the main player again
+        console.log('Updating all players');
+        Object.keys(players).forEach((id) => {
+            if (id !== this.socket.id) {  // Don't add the main player
                 this.addPlayer(players[id]);
             }
-        }
+        });
     }
 
     addPlayer(playerInfo) {
-        const newPlayer = new Player(playerInfo.name, this, playerInfo.x, playerInfo.y, 'humanWalk');
-        this.players[playerInfo.id] = newPlayer;
-        newPlayer.nameText.setText(playerInfo.name);  // Set the player's name
-        newPlayer.nameText.setPosition(playerInfo.x, playerInfo.y - 70);
+        console.log('Adding player:', playerInfo);
+        if (!this.players[playerInfo.id]) {  // Check if player doesn't already exist
+            const newPlayer = new Player(playerInfo.name || 'Player', this, playerInfo.x, playerInfo.y, 'humanWalk');
+            this.players[playerInfo.id] = newPlayer;
+            
+            if (playerInfo.name) {
+                newPlayer.nameText.setText(playerInfo.name);
+                newPlayer.nameText.setPosition(playerInfo.x, playerInfo.y - 70);
+            }
+        }
     }
 
     updatePlayerPosition(playerInfo) {
         if (this.players[playerInfo.id]) {
             const player = this.players[playerInfo.id];
             player.setPosition(playerInfo.x, playerInfo.y);
-            player.anims.play(playerInfo.animation.key, true);
-            player.flipX = playerInfo.flipX; // Apply the flipX state
-            player.nameText.setText(playerInfo.name);  // Update the name
-            player.nameText.setPosition(playerInfo.x, playerInfo.y - 70);
+            
+            // Check if animation data exists before playing
+            if (playerInfo.animation && playerInfo.animation.key) {
+                player.anims.play(playerInfo.animation.key, true);
+            }
+            
+            // Check if flipX exists before applying
+            if (typeof playerInfo.flipX !== 'undefined') {
+                player.flipX = playerInfo.flipX;
+            }
+            
+            // Update name and position if name exists
+            if (playerInfo.name) {
+                player.nameText.setText(playerInfo.name);
+                player.nameText.setPosition(playerInfo.x, playerInfo.y - 70);
+            }
+            
             player.updateHealthBar();
         }
     }
 
     removePlayer(playerId) {
         if (this.players[playerId]) {
+            console.log('Removing player:', playerId);
+            // The destroy() method will now clean up all associated elements
             this.players[playerId].destroy();
             delete this.players[playerId];
         }

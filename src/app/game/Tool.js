@@ -1,65 +1,98 @@
+import * as Phaser from 'phaser';
+
 class Tool extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, y, texture, animationKey) {
-    super(scene, x, y, texture);
-    this.scene = scene;
-    this.isSwinging = false; // Track if the tool is currently swinging
-    this.hasHitTarget = false; // Track if the tool has hit a target during the current swing
-    this.animationKey = animationKey; // Unique animation key for each tool
-
-    // Enable physics for the tool
-    this.scene.physics.world.enable(this);
-    this.scene.add.existing(this);
-
-    this.setScale(3);
-    this.refreshBody();
-    // Adjust the hitbox size (smaller than the sprite)
-    this.body.setSize(this.width * .2, this.height * .2);
-    this.body.setOffset(this.width * .35, this.height * .3);
-    // Define the swing animation
-    this.scene.anims.create({
-      key: this.animationKey,
-      frames: this.scene.anims.generateFrameNumbers(texture, { start: 0, end: 10 }), // Adjust frame numbers as needed
-      frameRate: 10,
-      repeat: 0
-    });
-    this.setDepth(20);
-  }
-
-  swing(player, pointer) {
-    console.log("SWING " + this.animationKey.toUpperCase());
-    if (!this.isSwinging) {
-      this.isSwinging = true;
-      this.hasHitTarget = false; // Reset the hit flag at the start of the swing
-      // Flip the tool based on its position relative to the player
-      if (this.x < player.x) {
-        this.flipX = true; // Flip the tool if it's on the left side of the player
-      } else {
-        this.flipX = false; // Do not flip the tool if it's on the right side of the player
-      }
-      this.play(this.animationKey, true);
-      this.on('animationcomplete', () => {
-        this.isSwinging = false;
-      }, this);
+    constructor(scene, x, y, texture) {
+        super(scene, x, y, texture);
+        
+        // Common properties for all tools
+        this.scene = scene;
+        this.damage = 0;
+        this.range = 0;
+        this.cooldown = 0;
+        this.lastUsed = 0;
+        
+        // Enable physics
+        this.scene.physics.world.enable(this);
+        this.scene.add.existing(this);
+        
+        // Set default tool state
+        this.isActive = false;
+        
+        // Add reference to the player
+        this.player = null;
+        
+        // Debug: Make hitbox visible
+        this.debugGraphics = this.scene.add.graphics();
+        this.debugGraphics.lineStyle(2, 0xff0000);
     }
-  }
 
-  checkOverlap(hitables) {
-    if (this.isSwinging && !this.hasHitTarget) {
-      hitables.forEach(hitable => {
-        if (this.scene.physics.world.overlap(this, hitable)) {
-          this.handleOverlap(this, hitable);
+    setPlayer(player) {
+        this.player = player;
+    }
+
+    // Update position to follow player
+    update() {
+        if (this.player) {
+            // Only update base position when not attacking
+            if (!this.scene.input.activePointer.leftButtonDown()) {
+                this.x = this.player.x;
+                this.y = this.player.y;
+            }
         }
-      });
     }
-  }
 
-  handleOverlap(tool, hitable) {
-    if (this.isSwinging && !this.hasHitTarget) {
-      hitable.takeDamage();
-      hitable.playAudio();
-      this.hasHitTarget = true; // Set the hit flag to true after hitting a target
+    // Abstract methods that child classes should implement
+    use() {
+        throw new Error('Tool subclass must implement use() method');
     }
-  }
+
+    // Common method to check if tool can be used
+    canUse() {
+        const currentTime = Date.now();
+        return currentTime - this.lastUsed >= this.cooldown;
+    }
+
+    // Modify checkOverlap to work with mouse position
+    checkOverlap(hitableGroup) {
+        if (this.scene.input.activePointer.leftButtonDown() && this.canUse()) {
+            // Get mouse position in world coordinates
+            const pointer = this.scene.input.activePointer;
+            const worldPoint = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
+            
+            // Calculate direction to mouse
+            const angle = Phaser.Math.Angle.Between(
+                this.player.x, this.player.y,
+                worldPoint.x, worldPoint.y
+            );
+
+            // Position the tool in front of the player in the direction of the mouse
+            this.x = this.player.x + Math.cos(angle) * this.range;
+            this.y = this.player.y + Math.sin(angle) * this.range;
+
+            // Debug: Draw hitbox
+            this.debugGraphics.clear();
+            this.debugGraphics.strokeRect(this.x - this.body.width/2, this.y - this.body.height/2, 
+                                        this.body.width, this.body.height);
+
+            console.log('Tool position:', this.x, this.y);
+            console.log('Checking for overlaps...');
+
+            this.use();
+            this.scene.physics.overlap(this, hitableGroup, (tool, target) => {
+                console.log('Overlap detected!');
+                this.onHit(tool, target);
+            }, null, this);
+            this.lastUsed = Date.now();
+        }
+    }
+
+    // Default hit behavior
+    onHit(tool, target) {
+        if (target.takeDamage) {
+            console.log(`${this.constructor.name} hit ${target.constructor.name}!`);
+            target.takeDamage(this.damage);
+        }
+    }
 }
 
 export default Tool;
